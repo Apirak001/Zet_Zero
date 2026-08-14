@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:device_frame/device_frame.dart'; // เพิ่มสำหรับกรอบมือถือ
 import 'firebase_options.dart';
 import 'controllers/game_controller.dart';
-import 'views/home_view.dart';
+
 import 'views/loading_view.dart';
 
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
           return DeviceFrame(
             device: Devices
                 .ios
-                .iPhone13ProMax, // เปลี่ยนเป็นรุ่นอื่นได้ เช่น Devices.android.samsungGalaxyS20
+                .iPhone16ProMax, // เปลี่ยนเป็น 16 Pro Max ตามคำขอ
             isFrameVisible: true,
             orientation: Orientation.portrait,
             screen: child!,

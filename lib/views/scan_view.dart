@@ -4,8 +4,7 @@ import 'package:camera/camera.dart';
 import 'package:provider/provider.dart';
 import '../services/ai_service.dart';
 import '../controllers/game_controller.dart';
-import 'widgets/result_dialog.dart';
-import 'widgets/quiz_dialog.dart';
+import 'result_view.dart';
 
 class ScanView extends StatefulWidget {
   const ScanView({Key? key}) : super(key: key);
@@ -14,21 +13,16 @@ class ScanView extends StatefulWidget {
   State<ScanView> createState() => _ScanViewState();
 }
 
-class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin {
+class _ScanViewState extends State<ScanView> {
   CameraController? _controller;
   List<CameraDescription>? _cameras;
   bool _isFlashOn = false;
   bool _isProcessing = false;
-  late AnimationController _animationController;
 
   @override
   void initState() {
     super.initState();
     _initCamera();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
   }
 
   Future<void> _initCamera() async {
@@ -49,7 +43,6 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
   @override
   void dispose() {
     _controller?.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
@@ -70,7 +63,11 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
     });
 
     try {
+      // ถ่ายรูปก่อน
       final XFile file = await _controller!.takePicture();
+      // จากนั้นสั่งหยุดภาพให้ค้างไว้
+      await _controller!.pausePreview();
+      
       final Uint8List imageBytes = await file.readAsBytes();
 
       // Call Gemini API
@@ -87,21 +84,17 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
         _isProcessing = false;
       });
 
-      // Show Result Dialog
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => ResultDialog(
-            imageBytes: imageBytes,
-            objectName: result['objectName'] ?? 'ไม่ทราบชื่อ',
-            className: result['className'] ?? 'ไม่ทราบ',
-            description: result['description'] ?? 'ไม่พบคำอธิบายเพิ่มเติมสำหรับสิ่งนี้',
-            scanCoins: scanCoins,
-            onCollect: () => _generateAndShowQuiz(
-              imageBytes,
-              result['objectName'] ?? 'ไม่ทราบชื่อ',
-              result['className'] ?? 'ไม่ทราบ',
+        // นำไปสู่หน้า ResultView ใหม่เต็มจอ
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ResultView(
+              imageBytes: imageBytes,
+              objectName: result['objectName'] ?? 'Unknown Object',
+              className: result['className'] ?? 'Unknown Type',
+              description: result['description'] ?? 'No description found.',
+              scanCoins: scanCoins,
             ),
           ),
         );
@@ -110,41 +103,9 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
       setState(() {
         _isProcessing = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+      if (_controller != null && _controller!.value.isInitialized) {
+        await _controller!.resumePreview();
       }
-    }
-  }
-
-  Future<void> _generateAndShowQuiz(Uint8List imageBytes, String objectName, String className) async {
-    setState(() {
-      _isProcessing = true;
-    });
-
-    try {
-      final aiService = AiService();
-      final quizData = await aiService.generateQuiz(objectName, className);
-
-      setState(() {
-        _isProcessing = false;
-      });
-
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => QuizDialog(
-            imageBytes: imageBytes,
-            quizData: quizData,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isProcessing = false;
-      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
@@ -155,17 +116,15 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 
   Widget _buildCameraPreview() {
     if (_controller == null || !_controller!.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white));
+      return const Center(child: CircularProgressIndicator(color: Colors.black));
     }
     
-    final size = MediaQuery.of(context).size;
-    var scale = size.aspectRatio * _controller!.value.aspectRatio;
-    
-    if (scale < 1) scale = 1 / scale;
-
-    return Transform.scale(
-      scale: scale,
-      child: Center(
+    // Fill the square container
+    return FittedBox(
+      fit: BoxFit.cover,
+      child: SizedBox(
+        width: _controller!.value.previewSize?.height ?? 1,
+        height: _controller!.value.previewSize?.width ?? 1,
         child: CameraPreview(_controller!),
       ),
     );
@@ -173,153 +132,158 @@ class _ScanViewState extends State<ScanView> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final frameSize = size.width * 0.7; // กรอบกว้าง 70% ของหน้าจอ
-
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Camera Preview (Full Screen)
-          Positioned.fill(
-            child: _buildCameraPreview(),
-          ),
-          
-          // Custom Overlay (Scanner Frame)
-          Positioned.fill(
-            child: SafeArea(
-              child: Column(
+      backgroundColor: const Color(0xFF8EB89F), // พื้นหลังสีเขียวพาสเทล
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          child: Column(
+            children: [
+              // Top Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  SizedBox(height: size.height * 0.15),
-                  // Frame Container
-                  SizedBox(
-                    width: frameSize,
-                    height: frameSize,
-                    child: Stack(
-                      children: [
-                        // Corners
-                        Align(alignment: Alignment.topLeft, child: _buildCorner()),
-                        Align(alignment: Alignment.topRight, child: RotatedBox(quarterTurns: 1, child: _buildCorner())),
-                        Align(alignment: Alignment.bottomRight, child: RotatedBox(quarterTurns: 2, child: _buildCorner())),
-                        Align(alignment: Alignment.bottomLeft, child: RotatedBox(quarterTurns: 3, child: _buildCorner())),
-                        
-                        // Scanner Animation Laser
-                        if (!_isProcessing)
-                          AnimatedBuilder(
-                            animation: _animationController,
-                            builder: (context, child) {
-                              return Positioned(
-                                top: _animationController.value * (frameSize - 4),
-                                left: 0,
-                                right: 0,
-                                child: Container(
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: Colors.cyanAccent,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.cyanAccent.withOpacity(0.8),
-                                        blurRadius: 12,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                      ],
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 2),
+                        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(2, 2))],
+                      ),
+                      child: const Icon(Icons.arrow_back, color: Colors.black, size: 24),
                     ),
                   ),
-                  const Spacer(),
-                  // Flashlight & Capture Controls
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 40, left: 30, right: 30),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const SizedBox(width: 50), // spacer
-                        // Capture Button
-                        GestureDetector(
-                          onTap: _isProcessing ? null : _captureAndAnalyze,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 80,
-                            height: 80,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 4),
-                              color: _isProcessing ? Colors.grey.withOpacity(0.5) : Colors.white.withOpacity(0.3),
-                            ),
-                            child: const Center(
-                              child: CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Flashlight Toggle
-                        GestureDetector(
-                          onTap: _toggleFlash,
-                          child: CircleAvatar(
-                            radius: 25,
-                            backgroundColor: Colors.black54,
-                            child: Icon(
-                              _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                  const Text(
+                    'Scan Object',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
                     ),
                   ),
+                  const SizedBox(width: 40), // Balance
                 ],
               ),
-            ),
-          ),
-          
-          // Processing Overlay (แบบกึ่งโปร่งใส ไม่บังกล้องมิด)
-          if (_isProcessing)
-            Container(
-              color: Colors.black.withOpacity(0.6), // เปลี่ยนให้เห็นภาพกล้องอยู่บ้าง
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Colors.cyanAccent),
-                    SizedBox(height: 20),
-                    Text(
-                      'กำลังใช้ AI วิเคราะห์...',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+              const Spacer(flex: 2),
+              
+              // กล่องกล้องสี่เหลี่ยมสไตล์ Flat Art
+              Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.black, width: 4),
+                  boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(8, 8))],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // กล้อง
+                      _buildCameraPreview(),
+                      
+                      // Overlay โหลด
+                      if (_isProcessing)
+                        Container(
+                          color: Colors.white.withOpacity(0.85),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(color: Colors.black, strokeWidth: 4),
+                              SizedBox(height: 16),
+                              Text(
+                                'Processing...',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            
-          // Back Button
-          Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
-            left: 20,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 30),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
+              
+              const Spacer(flex: 1),
+              
+              const Text(
+                'Point the camera at any object to analyze and earn coins!',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  shadows: [Shadow(color: Colors.black26, offset: Offset(1, 1), blurRadius: 2)],
+                ),
+              ),
+              
+              const Spacer(flex: 2),
+              
+              // แถบปุ่มด้านล่าง
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Flashlight
+                  GestureDetector(
+                    onTap: _toggleFlash,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 3),
+                        boxShadow: const [BoxShadow(color: Colors.black, offset: Offset(3, 3))],
+                      ),
+                      child: Icon(
+                        _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                        color: Colors.black,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 30),
+                  
+                  // Capture Button
+                  GestureDetector(
+                    onTap: _isProcessing ? null : _captureAndAnalyze,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: _isProcessing ? Colors.grey : const Color(0xFFFF5722), // สีส้มแบบรูปเรฟเฟอเรนซ์
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black,
+                            offset: _isProcessing ? const Offset(0, 0) : const Offset(4, 4),
+                          )
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(Icons.camera_alt, color: Colors.white, size: 36),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 30),
+                  
+                  // Empty space for balance (or could be gallery in future)
+                  const SizedBox(width: 56), 
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCorner() {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.white, width: 6),
-          left: BorderSide(color: Colors.white, width: 6),
         ),
       ),
     );

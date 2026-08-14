@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/local_prefs.dart';
-import 'login_view.dart';
-import 'home_view.dart';
+import 'welcome_view.dart';
+import 'main_navigation.dart';
 
 class LoadingView extends StatefulWidget {
   const LoadingView({Key? key}) : super(key: key);
@@ -61,14 +61,14 @@ class _LoadingViewState extends State<LoadingView> {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const LoginView()),
+            MaterialPageRoute(builder: (context) => const WelcomeView()),
           );
         }
       } else {
         if (mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const HomeView()),
+            MaterialPageRoute(builder: (context) => const MainNavigation()),
           );
         }
       }
@@ -76,7 +76,7 @@ class _LoadingViewState extends State<LoadingView> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginView()),
+          MaterialPageRoute(builder: (context) => const WelcomeView()),
         );
       }
     }
@@ -92,7 +92,8 @@ class _LoadingViewState extends State<LoadingView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // สีพื้นหลังขาวอมเทานิดๆ
-      body: Center(
+      body: SafeArea(
+        child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 40.0),
           child: Column(
@@ -189,6 +190,7 @@ class _LoadingViewState extends State<LoadingView> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
