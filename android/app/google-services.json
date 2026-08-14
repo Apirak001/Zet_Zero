@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "770895781782",
+    "project_id": "zetzero-1ad01",
+    "storage_bucket": "zetzero-1ad01.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:770895781782:android:98a9bb162a7bb33ad187b7",
+        "android_client_info": {
+          "package_name": "com.example.zet_zero"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "770895781782-5rgnfh8ccbn83mrc1ja8fem0b479fm68.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAMfeawm5fklFs9NdTOG3PrnO61PhFPNhM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "770895781782-5rgnfh8ccbn83mrc1ja8fem0b479fm68.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
