@@ -1,23 +1,27 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import '../config/api_keys.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AiService {
   static final AiService _instance = AiService._internal();
   factory AiService() => _instance;
   AiService._internal();
 
-  /// Analyze waste image to get object name and class
-  Future<Map<String, dynamic>> analyzeWaste(Uint8List imageBytes) async {
-    if (ApiKeys.geminiApiKey == 'your_api_key_here') {
-      throw Exception('กรุณาใส่ Gemini API Key ในไฟล์ lib/config/api_keys.dart ก่อนใช้งานครับ');
-    }
+  final String _baseUrl = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions';
 
-    final model = GenerativeModel(
-      model: 'gemini-3.6-flash',
-      apiKey: ApiKeys.geminiApiKey,
-    );
+  String get _apiKey {
+    final key = dotenv.env['QWEN_API_KEY'];
+    if (key == null || key.isEmpty || key == 'your_qwen_api_key_here') {
+      throw Exception('กรุณาใส่ QWEN_API_KEY ในไฟล์ .env ก่อนใช้งานครับ');
+    }
+    return key;
+  }
+
+  /// Analyze waste image to get object name and class using qwen3.8-max
+  Future<Map<String, dynamic>> analyzeWaste(Uint8List imageBytes) async {
+    final base64Image = base64Encode(imageBytes);
+    final imageUrl = 'data:image/jpeg;base64,$base64Image';
 
     final prompt = '''คุณคือผู้เชี่ยวชาญด้านการคัดแยกขยะ
     จงวิเคราะห์รูปภาพนี้แล้วบอกว่ามันคือขยะประเภทใด โดยให้ตอบกลับมาเป็น JSON FORMAT เท่านั้น ห้ามมีข้อความอื่นๆ ปนมาเด็ดขาด (ห้ามมี markdown ```json)
@@ -38,39 +42,52 @@ class AiService {
     - ไม่ทราบ (Unknown): หากรูปภาพมองไม่ออกว่าเป็นขยะอะไรเลย
     ''';
 
-    final content = [
-      Content.multi([
-        TextPart(prompt),
-        DataPart('image/jpeg', imageBytes),
-      ])
-    ];
+    final requestBody = jsonEncode({
+      'model': 'qwen3.8-max',
+      'messages': [
+        {
+          'role': 'user',
+          'content': [
+            {'type': 'text', 'text': prompt},
+            {
+              'type': 'image_url',
+              'image_url': {'url': imageUrl}
+            }
+          ]
+        }
+      ]
+    });
 
     try {
-      final response = await model.generateContent(content);
-      String text = response.text ?? '{}';
-      
-      // Clean up markdown if any
-      text = text.replaceAll(RegExp(r'```json', caseSensitive: false), '');
-      text = text.replaceAll('```', '');
-      text = text.trim();
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: requestBody,
+      );
 
-      return jsonDecode(text);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        String text = data['choices'][0]['message']['content'] ?? '{}';
+
+        // Clean up markdown if any
+        text = text.replaceAll(RegExp(r'```json', caseSensitive: false), '');
+        text = text.replaceAll('```', '');
+        text = text.trim();
+
+        return jsonDecode(text);
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
     } catch (e) {
       throw Exception('Failed to analyze image: $e');
     }
   }
 
-  /// Generate 1 quiz question based on the object
+  /// Generate 1 quiz question based on the object using qwen3.8-max
   Future<Map<String, dynamic>> generateQuiz(String objectName, String className) async {
-    if (ApiKeys.geminiApiKey == 'your_api_key_here') {
-      throw Exception('กรุณาใส่ Gemini API Key ในไฟล์ lib/config/api_keys.dart ก่อนใช้งานครับ');
-    }
-
-    final model = GenerativeModel(
-      model: 'gemini-3.6-flash',
-      apiKey: ApiKeys.geminiApiKey,
-    );
-
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final prompt = '''คุณคือผู้สร้างเกมตอบคำถาม (Quiz Master) เกี่ยวกับการจัดการขยะและสิ่งแวดล้อม
     
@@ -96,17 +113,39 @@ class AiService {
     }
     ''';
 
-    try {
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-      String text = response.text ?? '{}';
-      
-      // Clean up markdown if any
-      text = text.replaceAll(RegExp(r'```json', caseSensitive: false), '');
-      text = text.replaceAll('```', '');
-      text = text.trim();
+    final requestBody = jsonEncode({
+      'model': 'qwen3.8-max',
+      'messages': [
+        {
+          'role': 'user',
+          'content': prompt,
+        }
+      ]
+    });
 
-      return jsonDecode(text);
+    try {
+      final response = await http.post(
+        Uri.parse(_baseUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+        },
+        body: requestBody,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        String text = data['choices'][0]['message']['content'] ?? '{}';
+
+        // Clean up markdown if any
+        text = text.replaceAll(RegExp(r'```json', caseSensitive: false), '');
+        text = text.replaceAll('```', '');
+        text = text.trim();
+
+        return jsonDecode(text);
+      } else {
+        throw Exception('API Error: ${response.statusCode} - ${response.body}');
+      }
     } catch (e) {
       throw Exception('Failed to generate quiz: $e');
     }
