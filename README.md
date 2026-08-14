@@ -1,20 +1,64 @@
-# zet_zero
+# 🌱 Zet Zero - Eco-friendly Gamified App
 
-A new Flutter project.
+**Zet Zero** เป็นแอปพลิเคชันส่งเสริมการแยกขยะและรักษาสิ่งแวดล้อมผ่านระบบเกม (Gamification) ผู้เล่นสามารถสแกนขยะ ตอบคำถาม (Quiz) เพื่อสะสมแต้ม (เงิน) และลดมลพิษ (Pollution) พร้อมเพิ่มจำนวนประชากร (Population) ในเมืองของตัวเอง
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 🚀 ความคืบหน้าของโปรเจกต์ (Current Progress)
 
-A few resources to get you started if this is your first Flutter project:
+ระบบแอปพลิเคชันฝั่งผู้เล่น (Client/Mobile) ในปัจจุบันถูกพัฒนาใน **เฟสของ UI/UX และระบบ Core Game Loop พื้นฐาน** เสร็จสมบูรณ์แล้ว โดยมีความคืบหน้าดังนี้:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 1. 🔐 ระบบเข้าสู่ระบบ (Authentication & Onboarding)
+- **Welcome Screen:** หน้าเริ่มต้นแอปพร้อมระบบสไลด์ภาพพื้นหลังอัตโนมัติ (สไตล์รักษ์โลก) 
+- **Bottom Sheet UI:** ระบบเด้งหน้าต่าง Log in และ Sign up จากด้านล่าง สไตล์โมเดิร์น
+- **Firebase Auth:** เชื่อมต่อระบบสมัครสมาชิกและเข้าสู่ระบบด้วย Email/Password สมบูรณ์
+- **Remember Me:** ระบบจำการเข้าระบบ โดยจะบังคับให้ผู้ใช้ล็อกเอาท์อัตโนมัติหากเกินเวลา 24 ชั่วโมง (ป้องกันการค้างเซสชั่น)
+- *(รอการพัฒนา)* ระบบเข้าสู่ระบบผ่าน Google และ LINE (เตรียม UI ปุ่มไว้แล้ว)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 2. 📱 ระบบเมนูหลัก (Main Navigation & Routing)
+- **Floating Capsule Navbar:** แถบเมนูด้านล่างสุดล้ำ ลอยตัวจากขอบจอ พร้อมเอฟเฟกต์ลูกบอลสีขาวสไลด์ตามเมนูที่กด (สมูท 400ms)
+- **แก้ไขบั๊ก Tree-Shaking:** ป้องกันไอคอนหายเวลาบิลด์ไฟล์ APK แบบ Release ทำให้ไอคอนแสดงผลบนเครื่องจริงได้ครบ 100%
+- **ระบบสลับหน้า (Animated Switcher):** การเปลี่ยนหน้าระหว่าง Home, Store, Rank และ Profile มีเอฟเฟกต์ Fade & Slide Transition ที่นุ่มนวล
+- **Bug Fix Routing:** แก้ไขระบบตรวจสอบการเข้าสู่ระบบ (Loading View) ให้เตะผู้ใช้ที่ล็อกอินแล้วเข้ามาที่ `MainNavigation` อย่างถูกต้อง ไม่ทะลุข้าม Navbar
 
+### 3. 🏙️ หน้าเมืองหลัก (Home View)
+- **Boomerang GIF Background:** เพิ่มภาพพื้นหลังเมืองที่มีชีวิตชีวาด้วยไฟล์ `boomerang.gif` ที่ถูกตัดต่อให้เล่นภาพเคลื่อนไหวไป-กลับแบบไร้รอยต่อ (Seamless Loop)
+- **Pop-Art HUD:** ระบบอินเตอร์เฟสผู้เล่นสไตล์ Pop-Art (ขอบดำหนา สีพาสเทล เงาคมๆ) ประกอบด้วย:
+  - **Level:** แสดงเลเวลปัจจุบัน
+  - **Coins:** แสดงเงินที่ผู้เล่นมี (เริ่มต้น 5000)
+  - **Pollution Bar:** หลอดแสดงค่ามลพิษ (สีแดง)
+  - **Population Bar:** หลอดแสดงจำนวนประชากร (สีเขียว)
+- **Scan Button:** ปุ่มสแกนขยะขนาดกระชับที่จัดวางอย่าง Responsive โดยเว้นระยะขอบล่าง (Safe Area) เพื่อหลบเส้น Home Indicator ของมือถือรุ่นใหม่
+- **Clean UI:** นำปุ่มสำหรับ Debug (ปุ่มเสกเงิน/เสกมลพิษ) ออกทั้งหมด เพื่อให้เป็นหน้าจอสำหรับผู้เล่นจริงๆ
 
-#คีย์สำหรับ API ของ QWEN sk-ws-H.DMREIIH.Pw6b.MEQCIFJkVFaa2adTmuWy6KiXTPgFhY46Tt1QgcyNR5smwehiAiAGS1gALdOnRmb0olYRXpAfbSgYOOXTD9L1M1ojBK4jrQ
+### 4. 📷 ระบบสแกนขยะ (Scan View & Quiz)
+- **Scan View:** หน้ากล้องสำหรับสแกนขยะ 
+- **Quiz View:** ระบบสุ่มคำถามหลังจากสแกนขยะ เพื่อให้ผู้เล่นตอบคำถามสะสมแต้ม
+- **Result View:** หน้าสรุปผลรางวัลหลังจากตอบคำถามเสร็จสิ้น
+
+### 5. 🎵 ระบบเสียง (Audio Service)
+- ระบบเล่นเพลงพื้นหลัง (BGM) อัตโนมัติเวลาเข้าแอป และเล่นวนซ้ำ (Loop) ตลอดการใช้งาน
+
+---
+
+## 🛠️ ข้อมูลทางเทคนิคสำหรับนักพัฒนา (For Developers)
+
+- **Framework:** Flutter (รองรับ Android & iOS)
+- **Design System:** Pop-Art & Flat Design (ขอบดำ `border: Border.all(width: 3)`, เงา Offset คมๆ)
+- **Responsive Design:** ทุกหน้าจอมีการดักค่า `MediaQuery.of(context).padding.bottom` เพื่อรองรับมือถือจอยาว (เช่น iPhone 16 Pro Max)
+
+### 🔑 คีย์สำคัญสำหรับทดสอบ (API Keys)
+
+เนื่องจากระบบจะต้องมีการเชื่อมต่อกับ AI หรือ API เฉพาะกิจ นี่คือคีย์สำหรับการนำไปทดสอบ:
+
+> **QWEN API KEY:**
+> `sk-ws-H.DMREIIH.Pw6b.MEQCIFJkVFaa2adTmuWy6KiXTPgFhY46Tt1QgcyNR5smwehiAiAGS1gALdOnRmb0olYRXpAfbSgYOOXTD9L1M1ojBK4jrQ`
+> 
+> *(หมายเหตุ: คีย์นี้จำเป็นต้องใช้สำหรับการรันและทดสอบระบบ กรุณาห้ามลบออกหรือทำหาย)*
+
+---
+
+## 📌 แผนการพัฒนาในอนาคต (Next Steps)
+1. **Admin Dashboard (ระบบหลังบ้าน):** สร้างหน้าเว็บ (Web-based) สำหรับให้ผู้ดูแลระบบเข้ามาเสกเงิน, เสกไอเทม, จัดการข้อมูลผู้เล่น และดูสถิติ
+2. **Social Login:** เชื่อมระบบ Google Login และ LINE Login เข้ากับ Firebase ให้ใช้งานได้จริง
+3. **Profile Refinement:** สร้างหน้าระบบเปลี่ยนรหัสผ่าน (Change Password) และลืมรหัสผ่าน (Forgot Password) ให้สมบูรณ์
